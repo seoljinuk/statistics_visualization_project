@@ -10,12 +10,44 @@ matplotlib.rcParams['axes.unicode_minus'] = False
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
-df = pd.read_csv('고객복지데이터셋Cleaned.csv')
+dataIn = './../dataIn/'
+dataOut = './../dataOut/'
+
+df = pd.read_csv(dataIn + '고객복지데이터셋Cleaned.csv')
+
+
+'''
+subset_df_04 = df[['복지등급', '보육지원']]
+cross_df_04 = pd.crosstab(index=subset_df_04['보육지원'],
+                       columns=subset_df_04['복지등급'])
+print(cross_df_04)
+
+각 object 컬럼의 unique 개수 출력
+고객ID: 1000개
+월소득: 934개
+성별: 3개
+결혼상태: 4개
+고용형태: 5개
+학력: 5개
+복지등급: 5개
+지역: 8개
+장애여부: 3개
+웰니스참여: 2개
+보육지원: 2개
+정신건강지원: 2개
+기록일자: 1개
+
+각 숫자형 컬럼의 unique 개수 출력
+나이: 817개
+근속연수: 817개
+복지비사용액: 817개
+만족도점수: 817개
+건강지수: 817개
+지원인원: 817개
+'''
 
 # print("\n꺾은 선 그래프(Line Graph)")
 # plt.savefig('c02.correlation_heatmap_lower_triangle.png')
-# print("\n산점도 그래프(Scatter Plot)")
-#
 
 # print("\n히트맵(Heat Map)")
 #

@@ -24,7 +24,7 @@ object_columns = df.select_dtypes(include=['object']).columns.tolist()
 
 print("\nobject 타입 컬럼명:")
 print(object_columns)
-# ['고객ID', '월소득', '성별', '결혼상태', '고용형태', '학력', '복지등급', '지역',
+# ['고객ID', '소득', '성별', '결혼상태', '고용형태', '학력', '복지등급', '지역',
 # '장애여부', '웰니스참여', '보육지원', '정신건강지원', '기록일자']
 
 numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
@@ -59,9 +59,12 @@ df = df[~df['성별'].isin(['기타'])].dropna(subset=['성별'])
 print("성별의 고유값:", df['성별'].unique())
 print("성별의 고유값 개수:", df['성별'].nunique())
 
-# '월소득'이 문자열인가?
-print("\n월소득 컬럼의 unique 값 예시:")
-unique_sorted = sorted(df['월소득'].astype(str).unique())
+INCOME = '소득'
+AGE = '나이'
+
+# '소득'이 문자열인가?
+print("\n소득 컬럼의 unique 값 예시:")
+unique_sorted = sorted(df[INCOME].astype(str).unique())
 print("앞에서 10개 추출")
 print(unique_sorted[:10])
 
@@ -69,8 +72,8 @@ print("뒤에서 10개 추출")
 print(unique_sorted[-10:])
 # '?', 'nan' 항목이 잘못 되었음을 발견함
 
-df['월소득'] = df['월소득'].replace('?', np.nan)
-df['월소득'] = df['월소득'].astype('float')
+df[INCOME] = df[INCOME].replace('?', np.nan)
+df[INCOME] = df[INCOME].astype('float')
 
 print("\n데이터 프레임 요약 정보:")
 print(df.info())
@@ -90,8 +93,8 @@ print_missing_values(df)
 
 print('\n결측치 처리하기')
 # 결측치들을 비결측치들의 평균 값으로 대체하도록 합니다.
-print('결측치를 평균 값으로 대체 : 나이, 월소득, 복지비사용액, 근속연수, 만족도점수, 건강지수 ')
-fill_mean_cols = ['나이', '월소득', '복지비사용액', '근속연수', '만족도점수', '건강지수']
+print('결측치를 평균 값으로 대체 : 나이, 소득, 복지비사용액, 근속연수, 만족도점수, 건강지수 ')
+fill_mean_cols = ['나이', '소득', '복지비사용액', '근속연수', '만족도점수', '건강지수']
 
 for col in fill_mean_cols:
     mean_value = df[col].mean()
@@ -106,10 +109,8 @@ print_missing_values(df)
 print('\n결측치 처리 후 데이터 확인')
 print(df.info())
 
-salary = df['월소득']
-
-def print_descriptive_tatistics(concern):
-    print('\n기술 통계(Descriptive Statistics)')
+def print_descriptive_tatistics(field, concern):
+    print(f'\n{field} 기술 통계(Descriptive Statistics)')
     # 기본 통계량
     mean_val = concern.mean()              # 평균
     median_val = concern.median()          # 중앙값
@@ -137,11 +138,8 @@ def print_descriptive_tatistics(concern):
     print("\n빈도 (Frequency, 상위 10개):")
     print(freq_table.head(10))
 # end def
-
-print_descriptive_tatistics(salary)
-
-
-def draw_boxplot(boxdata, file_name):
+######################################################################################
+def draw_boxplot(field, boxdata, file_name):
     print('\nBoxplot 시각화')
     print('이상치 파악에 많은 도움이 되는 그래프입니다')
     plt.figure(figsize=(4, 6))
@@ -152,15 +150,13 @@ def draw_boxplot(boxdata, file_name):
                 capprops=dict(color='gray'),
                 flierprops=dict(marker='o', markerfacecolor='orange', markersize=6, linestyle='none'))
 
-    plt.title('월소득(Boxplot)', fontsize=14)
-    plt.ylabel('월소득', fontsize=12)
+    plt.title(f'{field}(Boxplot)', fontsize=14)
+    plt.ylabel(f'{field}', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.6)
     plt.savefig(dataOut + file_name)
 # end def
-
-draw_boxplot(salary, 'a01.salary_boxplot_old.png')
-
-def draw_histogram(mydata, file_name, mode='density'):
+######################################################################################
+def draw_histogram(titlename, mydata, file_name, mode='density'):
     """
     mode : 'density' (확률 밀도) 또는 'frequency' (빈도)
     """
@@ -191,8 +187,8 @@ def draw_histogram(mydata, file_name, mode='density'):
         plt.plot(x, y, 'r-', linewidth=2, label='정규 분포 곡선')
 
     # 제목 및 레이블
-    plt.title(f'월소득 분포 시각화 ({ "확률 밀도" if density_mode else "빈도" })', fontsize=14)
-    plt.xlabel('월소득')
+    plt.title(f'{titlename} 분포 시각화 ({ "확률 밀도" if density_mode else "빈도" })', fontsize=14)
+    plt.xlabel(f'{titlename}')
     plt.ylabel('확률 밀도' if density_mode else '빈도')
     plt.legend()
     plt.grid(True, linestyle='--', alpha=0.5)
@@ -214,42 +210,82 @@ def draw_histogram(mydata, file_name, mode='density'):
     print(f"첨도 (Kurtosis): {kurt:.4f} → {'뾰족한 분포 (양의 첨도)' if kurt > 0 else '평평한 분포 (음의 첨도)' if kurt < 0 else '정규 분포와 유사'}")
 
 # end def
+######################################################################################
+def RemoveOutliersByIQR(field, somedata):
+    """
+    IQR(사분위수 범위)을 이용해 이상치를 탐지하고,
+    원본 데이터프레임 df에서 해당 이상치 행을 제거하는 함수
+    """
+    global df  # 원본 df 수정 위해 global 선언
+
+    # ------------------------------------------------------
+    # Step 1. 사분위수 및 IQR 계산
+    # ------------------------------------------------------
+    Q1 = somedata.quantile(0.25)
+    Q3 = somedata.quantile(0.75)
+    IQR = Q3 - Q1
+
+    # ------------------------------------------------------
+    # Step 2. 이상치 기준 설정
+    # ------------------------------------------------------
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    # ------------------------------------------------------
+    # Step 3. 이상치 탐지
+    # ------------------------------------------------------
+    outliers = somedata[(somedata < lower_bound) | (somedata > upper_bound)]
+
+    print(f"Q1 (1사분위수): {Q1}")
+    print(f"Q3 (3사분위수): {Q3}")
+    print(f"IQR: {IQR}")
+    print(f"하한값: {lower_bound}, 상한값: {upper_bound}")
+    print(f"이상치 개수: {len(outliers)}")
+
+    print("\n이상치 (상위 20개):")
+    print(outliers.head(20))
+
+    # ------------------------------------------------------
+    # Step 4. 원본 데이터프레임 이상치 제거
+    # ------------------------------------------------------
+    print(f"\n이상치 제거 전: {len(df)}행")
+    df = df[~((df[field] < lower_bound) | (df[field] > upper_bound))]
+    print(f"이상치 제거 후: {len(df)}행")
+
+    return df  # 정제된 데이터프레임 반환
+# end def RemoveOutliersByIQR
+######################################################################################
+salary = df[INCOME]
+print_descriptive_tatistics(INCOME, salary)
+
+age = df[AGE]
+print_descriptive_tatistics(AGE, age)
+
+draw_boxplot(INCOME, salary, f'a01.{INCOME}_boxplot_이전.png')
+draw_boxplot(AGE, age, f'b01.{AGE}_boxplot_이전.png')
 
 print('\n이상치 때문에 그래프가 신빙성이 떨어집니다')
-draw_histogram(salary, 'b01.salary_histogram_old.png')
+draw_histogram(INCOME, salary, f'a02.{INCOME}_histogram_이전.png')
+draw_histogram(AGE, age, f'b02.{AGE}_histogram_이전.png')
 
-# 사분위수 계산
-Q1 = salary.quantile(0.25)
-Q3 = salary.quantile(0.75)
-IQR = Q3 - Q1
+df = RemoveOutliersByIQR(INCOME, salary)
 
-# 이상치 기준
-lower_bound = Q1 - 1.5 * IQR
-upper_bound = Q3 + 1.5 * IQR
+newsalary = df[INCOME]
+print_descriptive_tatistics(INCOME, newsalary)
 
-# 이상치 탐지
-outliers = salary[(salary < lower_bound) | (salary > upper_bound)]
+draw_boxplot(INCOME, newsalary, f'a03.{INCOME}_boxplot_이후.png')
+draw_histogram(INCOME,newsalary,  f'a04.{INCOME}_histogram_이후.png')
+draw_histogram(INCOME,newsalary,  f'a05.{INCOME}_histogram_이후.png', 'frequency')
 
-print(f'Q1 (1사분위수): {Q1}')
-print(f'Q3 (3사분위수): {Q3}')
-print(f'IQR: {IQR}')
-print(f'하한값: {lower_bound}, 상한값: {upper_bound}')
-print(f'이상치 개수: {len(outliers)}')
-print('\n이상치 (상위 20개):')
-print(outliers.head(20))
 
-print(f"\n이상치 제거 전: {len(df)}행")
-df = df[~((df['월소득'] < lower_bound) | (df['월소득'] > upper_bound))]
+df = RemoveOutliersByIQR(AGE, age)
 
-print(f"이상치 제거 후: {len(df)}행")
+newage = df[AGE]
+print_descriptive_tatistics(AGE, newage)
 
-newsalary = df['월소득']
-print_descriptive_tatistics(newsalary)
-
-draw_boxplot(newsalary, 'a02.salary_boxplot_new.png')
-draw_histogram(newsalary, 'b02.salary_histogram_new.png')
-draw_histogram(newsalary, 'b03.salary_histogram_new.png', 'frequency')
-
+draw_boxplot(AGE, newage, f'b03.{AGE}_boxplot_이후.png')
+draw_histogram(AGE, newsalary,  f'b04.{AGE}_histogram_이후.png')
+draw_histogram(AGE, newsalary,  f'b05.{AGE}_histogram_이후.png', 'frequency')
 
 print("\n상관 분석")
 print("상관 계수 히트맵")
@@ -294,7 +330,6 @@ min_corr = corr_unstacked.idxmin()
 print("\n[상관 계수 분석 결과]")
 print(f"가장 큰 상관 계수: {max_corr[0]} ↔ {max_corr[1]} ({corr_unstacked[max_corr]:.2f})")
 print(f"가장 작은 상관 계수: {min_corr[0]} ↔ {min_corr[1]} ({corr_unstacked[min_corr]:.2f})")
-
 
 # CSV 파일로 저장
 df.to_csv(dataIn + '고객복지데이터셋Cleaned.csv', index=False, encoding='utf-8-sig')
