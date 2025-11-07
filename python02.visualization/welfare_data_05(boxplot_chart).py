@@ -122,9 +122,6 @@ def MakeBoxPlotChart02(dataframe, file_name):
 MakeBoxPlotChart02(df, 'g02.boxplot_chart.png')
 ###############################################################################
 
-
-###############################################################################
-
 '''
 subset_df_04 = df[['복지등급', '보육지원']]
 cross_df_04 = pd.crosstab(index=subset_df_04['보육지원'],

@@ -59,12 +59,13 @@ df = df[~df['성별'].isin(['기타'])].dropna(subset=['성별'])
 print("성별의 고유값:", df['성별'].unique())
 print("성별의 고유값 개수:", df['성별'].nunique())
 
-INCOME = '소득'
+SALARY = '소득'
 AGE = '나이'
+TENURE = '근속연수'
 
 # '소득'이 문자열인가?
 print("\n소득 컬럼의 unique 값 예시:")
-unique_sorted = sorted(df[INCOME].astype(str).unique())
+unique_sorted = sorted(df[SALARY].astype(str).unique())
 print("앞에서 10개 추출")
 print(unique_sorted[:10])
 
@@ -72,8 +73,8 @@ print("뒤에서 10개 추출")
 print(unique_sorted[-10:])
 # '?', 'nan' 항목이 잘못 되었음을 발견함
 
-df[INCOME] = df[INCOME].replace('?', np.nan)
-df[INCOME] = df[INCOME].astype('float')
+df[SALARY] = df[SALARY].replace('?', np.nan)
+df[SALARY] = df[SALARY].astype('float')
 
 print("\n데이터 프레임 요약 정보:")
 print(df.info())
@@ -255,37 +256,54 @@ def RemoveOutliersByIQR(field, somedata):
     return df  # 정제된 데이터프레임 반환
 # end def RemoveOutliersByIQR
 ######################################################################################
-salary = df[INCOME]
-print_descriptive_tatistics(INCOME, salary)
+salary = df[SALARY]
+print_descriptive_tatistics(SALARY, salary)
 
 age = df[AGE]
 print_descriptive_tatistics(AGE, age)
 
-draw_boxplot(INCOME, salary, f'a01.{INCOME}_boxplot_이전.png')
+tenure = df[TENURE]
+print_descriptive_tatistics(TENURE, tenure)
+
+
+draw_boxplot(SALARY, salary, f'a01.{SALARY}_boxplot_이전.png')
 draw_boxplot(AGE, age, f'b01.{AGE}_boxplot_이전.png')
+draw_boxplot(TENURE, tenure, f'c01.{TENURE}_boxplot_이전.png')
 
 print('\n이상치 때문에 그래프가 신빙성이 떨어집니다')
-draw_histogram(INCOME, salary, f'a02.{INCOME}_histogram_이전.png')
+draw_histogram(SALARY, salary, f'a02.{SALARY}_histogram_이전.png')
 draw_histogram(AGE, age, f'b02.{AGE}_histogram_이전.png')
+draw_histogram(TENURE, tenure, f'c02.{TENURE}_histogram_이전.png')
 
-df = RemoveOutliersByIQR(INCOME, salary)
+#-----------------------------------------------------------------------------
+df = RemoveOutliersByIQR(SALARY, salary)
 
-newsalary = df[INCOME]
-print_descriptive_tatistics(INCOME, newsalary)
+newsalary = df[SALARY]
+print_descriptive_tatistics(SALARY, newsalary)
 
-draw_boxplot(INCOME, newsalary, f'a03.{INCOME}_boxplot_이후.png')
-draw_histogram(INCOME,newsalary,  f'a04.{INCOME}_histogram_이후.png')
-draw_histogram(INCOME,newsalary,  f'a05.{INCOME}_histogram_이후.png', 'frequency')
-
-
+draw_boxplot(SALARY, newsalary, f'a03.{SALARY}_boxplot_이후.png')
+draw_histogram(SALARY,newsalary,  f'a04.{SALARY}_histogram_이후.png')
+draw_histogram(SALARY,newsalary,  f'a05.{SALARY}_histogram_이후.png', 'frequency')
+#-----------------------------------------------------------------------------
 df = RemoveOutliersByIQR(AGE, age)
 
 newage = df[AGE]
 print_descriptive_tatistics(AGE, newage)
 
 draw_boxplot(AGE, newage, f'b03.{AGE}_boxplot_이후.png')
-draw_histogram(AGE, newsalary,  f'b04.{AGE}_histogram_이후.png')
-draw_histogram(AGE, newsalary,  f'b05.{AGE}_histogram_이후.png', 'frequency')
+draw_histogram(AGE, newage,  f'b04.{AGE}_histogram_이후.png')
+draw_histogram(AGE, newage,  f'b05.{AGE}_histogram_이후.png', 'frequency')
+#-----------------------------------------------------------------------------
+df = RemoveOutliersByIQR(TENURE, age)
+
+newtenure = df[TENURE]
+print_descriptive_tatistics(TENURE, newtenure)
+
+draw_boxplot(TENURE, newtenure, f'c03.{TENURE}_boxplot_이후.png')
+draw_histogram(TENURE, newtenure,  f'c04.{TENURE}_histogram_이후.png')
+draw_histogram(TENURE, newtenure,  f'c05.{TENURE}_histogram_이후.png', 'frequency')
+#-----------------------------------------------------------------------------
+
 
 print("\n상관 분석")
 print("상관 계수 히트맵")
@@ -305,7 +323,7 @@ sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
 
 plt.title('나이, 복지비사용액, 만족도점수, 건강지수 간 상관 계수 히트맵', fontsize=13)
 plt.tight_layout()
-plt.savefig(dataOut + 'c01.correlation_heatmap.png')
+plt.savefig(dataOut + 'd01.correlation_heatmap.png')
 
 # 상삼각(upper triangle)을 마스크로 가리기
 mask = np.triu(np.ones_like(corr_matrix, dtype=bool))
@@ -317,7 +335,7 @@ sns.heatmap(corr_matrix, mask=mask, annot=True, cmap='coolwarm', fmt=".2f",
 
 plt.title('나이, 복지비사용액, 만족도점수, 건강지수 간 상관 계수 (하삼각만 표시)', fontsize=13)
 plt.tight_layout()
-plt.savefig(dataOut + 'c02.correlation_heatmap_lower_triangle.png')
+plt.savefig(dataOut + 'd02.correlation_heatmap_lower_triangle.png')
 
 # --- 가장 큰/작은 상관 계수 찾기 ---
 # 대각선(자기 자신과의 상관)은 제외
